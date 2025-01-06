@@ -11,3 +11,12 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/*  Error message is added by ours */
+/*  Error message style */
+.error {
+  color: red; /* Set the error text color to red */
+  font-size: 0.9em; /* Slightly smaller text for error messages */
+  margin-top: 4px; /* Add a little space above the error message */
+  display: block; /* Ensure the error text is displayed as a block */
+}

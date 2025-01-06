@@ -1,210 +1,249 @@
 import React, { useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { setSchema, selectSchema } from "../redux/schemaSlice";
 
 const PICMIInputForm = () => {
-  // State for common parameters
-  const [numberCells, setNumberCells] = useState("[192, 2048, 192]");
-  const [cellSize, setCellSize] = useState("[0.1772e-6, 0.4430e-7, 0.1772e-6]");
+  const schema = useSelector(selectSchema);
+  const dispatch = useDispatch();
 
-  // State for Grid block parameters
-  const [picongpuNGpus, setPicongpuNGpus] = useState("[2, 4, 1]");
-  const [lowerBound, setLowerBound] = useState("[0, 0, 0]");
-  const [lowerBoundaryConditions, setLowerBoundaryConditions] = useState(['"open", "open", "open"']); // Store as array
-  const [upperBoundaryConditions, setUpperBoundaryConditions] = useState(['"open", "open", "open"']); // Store as array
-  const [gridUpperBound, setGridUpperBound] = useState(null); // Derived upper_bound
+  const [values, setValues] = useState({});
+  const [errorMessages, setErrorMessages] = useState({});
+  const [calculatedValues, setCalculatedValues] = useState({});
 
-  // State for Electromagnetic Solver block parameters
-  const [solverMethod, setSolverMethod] = useState('"Yee"');
-
-  // State for storing grid configuration
-  const [grid, setGrid] = useState(null); // Add state for grid configuration
-
-  // Derived values calculation
   useEffect(() => {
-    if (
-      numberCells &&
-      cellSize &&
-      picongpuNGpus &&
-      lowerBound &&
-      lowerBoundaryConditions &&
-      upperBoundaryConditions
-    ) {
-      // Compute the upper_bound dynamically based on numberCells and cellSize
-      const upperBound = JSON.parse(numberCells).map((n, i) => n * JSON.parse(cellSize)[i]);
+    // Fetch schema
+    fetch("/picmi_schema.json")
+      .then((response) => response.json())
+      .then((data) => {
+        dispatch(setSchema(data));
+      });
+  }, [dispatch]);
 
-      // Create the grid block configuration
-      const gridConfig = {
-        picongpu_n_gpus: JSON.parse(picongpuNGpus),
-        number_of_cells: JSON.parse(numberCells),
-        lower_bound: JSON.parse(lowerBound),
-        upper_bound: upperBound,
-        lower_boundary_conditions: lowerBoundaryConditions, // Array of 3 values
-        upper_boundary_conditions: upperBoundaryConditions, // Array of 3 values
+  useEffect(() => {
+    if (schema && schema.properties) {
+      const initializeValues = (schema) => {
+        const initialValues = {};
+        Object.keys(schema.properties).forEach((key) => {
+          const field = schema.properties[key];
+          if (field.type === "object") {
+            initialValues[key] = initializeValues(field);
+          } else {
+            initialValues[key] = "";
+          }
+        });
+        return initialValues;
       };
 
-      // Set the grid configuration
-      setGrid(gridConfig);
-      setGridUpperBound(upperBound); // Set upper_bound as well
+      setValues(initializeValues(schema));
     }
-  }, [
-    numberCells,
-    cellSize,
-    picongpuNGpus,
-    lowerBound,
-    lowerBoundaryConditions,
-    upperBoundaryConditions,
-  ]);
+  }, [schema]);
+
+  // Dynamically calculate dependent fields like upperBound
+  useEffect(() => {
+    if (values.numberCells && values.cellSize) {
+      try {
+        const numberCells = JSON.parse(values.numberCells);
+        const cellSize = JSON.parse(values.cellSize);
+
+        if (Array.isArray(numberCells) && Array.isArray(cellSize)) {
+          const upperBound = numberCells.map((n, i) => n * cellSize[i]);
+          setCalculatedValues((prev) => ({
+            ...prev,
+            upperBound,
+          }));
+        }
+      } catch {
+        setCalculatedValues((prev) => ({
+          ...prev,
+          upperBound: [],
+        }));
+      }
+    }
+  }, [values.numberCells, values.cellSize]);
+
+  const generateExampleArray = (fieldSchema) => {
+    if (fieldSchema.type === "array" && fieldSchema.items) {
+      if (fieldSchema.items.type === "integer") {
+        return "[1, 2, 3]";
+      }
+      if (fieldSchema.items.type === "string" && fieldSchema.items.enum) {
+        return JSON.stringify(fieldSchema.items.enum.slice(0, 3)); // Example using the first few enums
+      }
+      if (fieldSchema.items.type === "number") {
+        return "[1.1, 2.2, 3.3]";
+      }
+      return "[value1, value2, value3]";
+    }
+    return "[value1, value2, value3]";
+  };
+  
+  const generatePlaceholder = (fieldName, fieldSchema) => {
+    if (fieldSchema.type === "array") {
+      const itemType = fieldSchema.items?.type || "any";
+      const minItems = fieldSchema.minItems || 0;
+      const maxItems = fieldSchema.maxItems || "unlimited";
+      const example = generateExampleArray(fieldSchema);
+  
+      return `Enter an array of ${itemType}s [${minItems} to ${maxItems} items]. Example: ${example}`;
+    }
+  
+    if (fieldSchema.type === "boolean") {
+      return "Enter true or false. Example: true";
+    }
+  
+    if (fieldSchema.type === "number") {
+      if (fieldSchema.exclusiveMinimum) {
+        return `Enter a number greater than ${fieldSchema.exclusiveMinimum}. Example: 1.5`;
+      }
+      return "Enter a number. Example: 3.14";
+    }
+  
+    if (fieldSchema.type === "integer") {
+      return "Enter an integer. Example: 42";
+    }
+  
+    if (fieldSchema.type === "string") {
+      if (fieldSchema.enum) {
+        return `Choose one of: ${fieldSchema.enum.join(", ")}. Example: ${fieldSchema.enum[0]}`;
+      }
+      return "Enter a string. Example: Hello";
+    }
+  
+    return `Enter a value for ${fieldName}`;
+  };
+  
+
+  const validateField = (fieldName, value, fieldSchema) => {
+    if (!value) return "This field is required.";
+  
+    if (fieldSchema.type === "array") {
+      try {
+        const parsed = JSON.parse(value);
+        if (!Array.isArray(parsed)) return "Input must be an array.";
+  
+        // Validate array length
+        if (fieldSchema.minItems && parsed.length < fieldSchema.minItems) {
+          return `Array must have at least ${fieldSchema.minItems} items.`;
+        }
+        if (fieldSchema.maxItems && parsed.length > fieldSchema.maxItems) {
+          return `Array must have no more than ${fieldSchema.maxItems} items.`;
+        }
+  
+        // Validate each array item
+        if (fieldSchema.items) {
+          for (const item of parsed) {
+            if (fieldSchema.items.type === "integer" && (!Number.isInteger(item) || item < (fieldSchema.items.minimum || Number.MIN_SAFE_INTEGER))) {
+              return `Array items must be integers${fieldSchema.items.minimum ? ` greater than or equal to ${fieldSchema.items.minimum}` : ""}.`;
+            }
+            if (fieldSchema.items.type === "string" && typeof item !== "string") {
+              return `Array items must be strings.`;
+            }
+            if (fieldSchema.items.enum && !fieldSchema.items.enum.includes(item)) {
+              return `Array items must be one of: ${fieldSchema.items.enum.join(", ")}.`;
+            }
+          }
+        }
+  
+        return null;
+      } catch {
+        return `Invalid array format. Use JSON format, e.g., ${generateExampleArray(fieldSchema)}.`;
+      }
+    }
+  
+    // Other types
+    if (fieldSchema.type === "boolean" && value !== "true" && value !== "false") {
+      return "Enter true or false.";
+    }
+  
+    if ((fieldSchema.type === "number" || fieldSchema.type === "integer") && isNaN(value)) {
+      return `Enter a valid ${fieldSchema.type}.`;
+    }
+  
+    if (fieldSchema.type === "string") {
+      if (fieldSchema.enum && !fieldSchema.enum.includes(value)) {
+        return `Value must be one of: ${fieldSchema.enum.join(", ")}.`;
+      }
+    }
+  
+    return null;
+  };
+  
+  
+
+  const handleChange = (fieldName, value, fieldSchema, parentKey = "") => {
+    const newValues = { ...values };
+    const fieldKey = parentKey ? `${parentKey}.${fieldName}` : fieldName;
+
+    const setNestedValue = (obj, path, newValue) => {
+      const parts = path.split(".");
+      const lastKey = parts.pop();
+      const nestedObj = parts.reduce((acc, key) => acc[key], obj);
+      nestedObj[lastKey] = newValue;
+    };
+
+    setNestedValue(newValues, fieldKey, value);
+    setValues(newValues);
+
+    const error = validateField(fieldKey, value, fieldSchema);
+    setErrorMessages((prevErrors) => ({
+      ...prevErrors,
+      [fieldKey]: error,
+    }));
+  };
+
+  const renderFields = (schema, parentKey = "") => {
+    return Object.entries(schema.properties).map(([fieldName, fieldSchema]) => {
+      const fieldKey = parentKey ? `${parentKey}.${fieldName}` : fieldName;
+
+      if (fieldSchema.type === "object") {
+        return (
+          <fieldset key={fieldKey} className="nested-fieldset">
+            <legend>{fieldSchema.title || fieldName}</legend>
+            {renderFields(fieldSchema, fieldKey)}
+          </fieldset>
+        );
+      }
+
+      return (
+        <div key={fieldKey} className="form-group">
+          <label htmlFor={fieldKey}>
+            {fieldSchema.title || fieldName}:
+          </label>
+          <input
+            type="text"
+            id={fieldKey}
+            name={fieldKey}
+            value={values[fieldName]}
+            onChange={(e) => handleChange(fieldName, e.target.value, fieldSchema, parentKey)}
+            placeholder={generatePlaceholder(fieldName, fieldSchema)}
+          />
+          {fieldKey === "upperBound" && calculatedValues.upperBound && (
+            <div className="calculated-value">
+              Calculated Value: {JSON.stringify(calculatedValues.upperBound)}
+            </div>
+          )}
+          {errorMessages[fieldKey] && (
+            <span className="error">{errorMessages[fieldKey]}</span>
+          )}
+        </div>
+      );
+    });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    console.log("Common Parameters:");
-    console.log("  numberCells:", JSON.parse(numberCells));
-    console.log("  cellSize:", JSON.parse(cellSize));
-
-    console.log("\nGrid Block:");
-    console.log("  picongpu_n_gpus:", JSON.parse(picongpuNGpus));
-    console.log("  number_of_cells:", JSON.parse(numberCells));
-    console.log("  lower_bound:", JSON.parse(lowerBound));
-    console.log("  upper_bound:", gridUpperBound);
-    console.log("  lower_boundary_conditions:", JSON.stringify(lowerBoundaryConditions)); // Display as string
-    console.log("  upper_boundary_conditions:", JSON.stringify(upperBoundaryConditions)); // Display as string
-
-    console.log("\nElectromagnetic Solver:");
-    console.log("  method:", solverMethod);
-    console.log("  grid:", grid); // Grid is now defined here
-
-    alert("Configuration logged in the console!");
+    console.log("Submitted values:", { ...values, ...calculatedValues });
   };
 
+  if (!schema) {
+    return <div>Loading...</div>;
+  }
+
   return (
-    <form onSubmit={handleSubmit} style={{ fontFamily: "Arial, sans-serif" }}>
-      <h1>PICMI Input Form</h1>
-
-      {/* Section: Common Parameters */}
-      <fieldset>
-        <legend><strong>1. Common Parameters</strong></legend>
-        <label>
-          Number of Cells:
-          <input
-            type="text"
-            value={numberCells}
-            onChange={(e) => setNumberCells(e.target.value)}
-            style={{ marginLeft: "10px", width: "300px" }}
-          />
-        </label>
-        <br />
-        <label>
-          Cell Size:
-          <input
-            type="text"
-            value={cellSize}
-            onChange={(e) => setCellSize(e.target.value)}
-            style={{ marginLeft: "48px", width: "300px" }}
-          />
-        </label>
-      </fieldset>
-
-      {/* Section: Grid Block */}
-      <fieldset style={{ marginTop: "20px" }}>
-        <legend><strong>2. Grid Block</strong></legend>
-        <label>
-          picongpu_n_gpus:
-          <input
-            type="text"
-            value={picongpuNGpus}
-            onChange={(e) => setPicongpuNGpus(e.target.value)}
-            style={{ marginLeft: "10px", width: "300px" }}
-          />
-        </label>
-        <br />
-        <label>
-          Number of Cells:
-          <input
-            type="text"
-            value={numberCells}
-            readOnly
-            style={{ marginLeft: "30px", width: "300px", backgroundColor: "#f0f0f0" }}
-          />
-        </label>
-        <br />
-        <label>
-          Lower Bound:
-          <input
-            type="text"
-            value={lowerBound}
-            onChange={(e) => setLowerBound(e.target.value)}
-            style={{ marginLeft: "32px", width: "300px" }}
-          />
-        </label>
-        <br />
-        <label>
-          Derived Upper Bound:
-          <input
-            type="text"
-            value={gridUpperBound ? gridUpperBound.join(", ") : "Invalid input"}
-            readOnly
-            style={{ marginLeft: "10px", width: "300px", backgroundColor: "#f0f0f0" }}
-          />
-        </label>
-        <br />
-        <label>
-          Lower Boundary Conditions:
-          <input
-            type="text"
-            value={lowerBoundaryConditions.join(", ")} // Join the array as string for display
-            onChange={(e) => setLowerBoundaryConditions(e.target.value.split(", "))}
-            style={{ marginLeft: "10px", width: "300px" }}
-          />
-        </label>
-        <br />
-        <label>
-          Upper Boundary Conditions:
-          <input
-            type="text"
-            value={upperBoundaryConditions.join(", ")} // Join the array as string for display
-            onChange={(e) => setUpperBoundaryConditions(e.target.value.split(", "))}
-            style={{ marginLeft: "10px", width: "300px" }}
-          />
-        </label>
-      </fieldset>
-
-      {/* Section: Electromagnetic Solver Block */}
-      <fieldset>
-        <legend><strong>3. Electromagnetic Solver Block</strong></legend>
-        <label>
-          Solver Method:
-          <input
-            type="text"
-            value={solverMethod}
-            onChange={(e) => setSolverMethod(e.target.value)}
-            style={{ marginLeft: "10px", width: "300px" }}
-          />
-        </label>
-        <br />
-        <label>
-          Grid Block Reference:
-          {grid ? (
-            <input
-              type="text"
-              value={`grid: ${JSON.stringify(grid)}`}  // Displaying the grid block configuration
-              readOnly
-              style={{ marginLeft: "10px", width: "300px", backgroundColor: "#f0f0f0" }}
-            />
-          ) : (
-            <input
-              type="text"
-              value="Grid not defined yet"
-              readOnly
-              style={{ marginLeft: "10px", width: "300px", backgroundColor: "#f0f0f0" }}
-            />
-          )}
-        </label>
-      </fieldset>
-
-      {/* Submit Button */}
-      <button type="submit" style={{ marginTop: "20px", padding: "10px 20px" }}>
-        Submit Configuration
-      </button>
+    <form onSubmit={handleSubmit}>
+      <h2>PICMI Input Form</h2>
+      {renderFields(schema)}
+      <button type="submit">Submit</button>
     </form>
   );
 };

@@ -1,8 +1,22 @@
-import React from "react";
-import PICMIInputForm from "./components/PICMIInputForm"; // Adjust the path if needed
+import React, { useState, useEffect } from "react";
+import PICMIInputForm from "./components/PICMIInputForm.js"; // Import your form component
 import './App.css'; // Make sure the styles are applied
 
 function App() {
+  const [schema, setSchema] = useState(null); // State to hold schema
+
+  // Fetch schema data on component mount
+  useEffect(() => {
+    fetch('picmi_schema.json') // 
+      .then((response) => response.json())
+      .then((data) => setSchema(data))
+      .catch((error) => console.error('Error loading schema:', error));
+  }, []);
+
+  if (!schema) {
+    return <div>Loading...</div>; // Show loading state until schema is fetched
+  }
+
   return (
     <div className="App">
       {/* Header with logos */}
@@ -17,7 +31,7 @@ function App() {
       </div>
       
       {/* Main content */}
-      <PICMIInputForm />
+      <PICMIInputForm schema={schema} /> {/* Pass schema as a prop */}
 
       {/* Footer */}
       <div className="footer">
@@ -28,6 +42,7 @@ function App() {
 }
 
 export default App;
+
 
 
 // default app.js provided by npm start:

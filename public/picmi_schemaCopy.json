@@ -1,0 +1,418 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Laser-Plasma Acceleration Metadata",
+  "type": "object",
+  "properties": {
+    "ENABLE_IONS": { "type": "boolean" },
+    "ENABLE_IONIZATION": { "type": "boolean" },
+    "ADD_CUSTOM_INPUT": { "type": "boolean" },
+    "script_directory": { "type": "string" },
+    "custom_template_directory": { "type": "string" },
+    "OUTPUT_DIRECTORY_PATH": { "type": "string" },
+    "numberCells": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1 },
+      "minItems": 1,
+      "maxItems": 3,
+      "description": "Defines the number of cells in each dimension for the simulation grid. It accepts 1 item for 1D, 2 items for 2D, and 3 items for 3D simulations."
+    },
+    "cellSize": {
+      "type": "array",
+      "items": { "type": "number", "exclusiveMinimum": 0 },
+      "minItems": 1,
+      "maxItems": 3,
+      "description": "Defines the cell size in each dimension for the simulation grid. It accepts 1 item for 1D, 2 items for 2D, and 3 items for 3D simulations."
+    },
+    "grid": {
+      "type": "object",
+      "properties": {
+        "picongpu_n_gpus": {
+          "oneOf": [
+              {
+                "type": "array",
+                "items": { "type": "integer", "minimum": 1 },
+                "minItems": 1,
+                "maxItems": 1,
+                "description": "For 1D or specific cases with only one dimension; equivalent to [1, N_gpu_y, 1]."
+              },
+              {
+                "type": "array",
+                "items": { "type": "integer", "minimum": 1 },
+                "minItems": 3,
+                "maxItems": 3,
+                "description": "For 3D GPU distribution with [N_gpu_x, N_gpu_y, N_gpu_z]."
+              }
+            ],
+            "default": [1, 1, 1],
+            "description": "Specifies GPU distribution in space. Can be either a 1-item list (interpreted as [1, N_gpu_y, 1]) or a 3-item list [N_gpu_x, N_gpu_y, N_gpu_z]."
+        },
+        "number_of_cells": { "$ref": "#/properties/numberCells" },
+        "lower_bound": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 },
+          "minItems": 1,
+          "maxItems": 3,
+          "description": "Defines the cell size in each dimension for the simulation grid. It accepts 1 item for 1D, 2 items for 2D, and 3 items for 3D simulations."
+    },
+        "upper_bound": {
+          "type": "array",
+          "items": { "type": "number", "exclusiveMinimum": 0 },
+          "minItems": 1,
+          "maxItems": 3,
+          "description": "Defines the cell size in each dimension for the simulation grid. It accepts 1 item for 1D, 2 items for 2D, and 3 items for 3D simulations.",
+          "dependencies": ["numberCells", "cellSize"]
+        },
+        "lower_boundary_conditions": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["open", "periodic", "reflective"] },
+          "minItems": 1,
+          "maxItems": 3,
+          "description": "Defines the cell size in each dimension for the simulation grid. It accepts 1 item for 1D, 2 items for 2D, and 3 items for 3D simulations."
+        },
+        "upper_boundary_conditions": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["open", "periodic", "reflective"] },
+          "minItems": 1,
+          "maxItems": 3,
+          "description": "Defines the cell size in each dimension for the simulation grid. It accepts 1 item for 1D, 2 items for 2D, and 3 items for 3D simulations."
+        }
+      },
+      "required": ["picongpu_n_gpus", "number_of_cells", "lower_bound", "upper_bound", "lower_boundary_conditions", "upper_boundary_conditions"]
+    },
+    "gaussianProfile": {
+      "type": "object",
+      "properties": {
+        "density": { "type": "number", "exclusiveMinimum": 0 },
+        "center_front": { "type": "number", "exclusiveMinimum": 0 },
+        "sigma_front": { "type": "number", "exclusiveMinimum": 0 },
+        "center_rear": { "type": "number", "exclusiveMinimum": 0 },
+        "sigma_rear": { "type": "number", "exclusiveMinimum": 0 },
+        "factor": { "type": "number" },
+        "power": { "type": "number" },
+        "vacuum_cells_front": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["density", "center_front", "sigma_front", "center_rear", "sigma_rear", "factor", "power", "vacuum_cells_front"]
+    },
+    "solver": {
+      "type": "object",
+      "properties": {
+          "grid": { "$ref": "#/properties/grid" },
+          "method": { "type": "string", "enum": ["Yee", "Lehe"] }
+      },
+      "required": ["grid","method"]
+    },
+    "laser": {
+      "type": "object",
+      "properties": {
+        "wavelength": { "type": "number", "exclusiveMinimum": 0 },
+        "waist": { "type": "number", "exclusiveMinimum": 0 },
+        "duration": { "type": "number", "exclusiveMinimum": 0 },
+        "propagation_direction": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "polarization_direction": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "focal_position": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 1,
+          "maxItems": 3,
+          "dependencies": ["numberCells", "cellSize"]
+        },
+        "centroid_position": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 1,
+          "maxItems": 3,
+          "dependencies": ["numberCells", "cellSize"]
+        },
+        "a0": { "type": "number", "minimum": 0 },
+        "phase": { "type": "number", "minimum": 0 },
+        "polarization_type": { "type": "string", "enum": ["CIRCULAR", "LINEAR"] }
+      },
+      "required": ["wavelength", "waist", "duration", "propagation_direction", "polarization_direction", "focal_position", "centroid_position", "a0", "phase", "polarization_type"]
+    },
+    "random_layout": {
+      "type": "object",
+      "properties": {
+        "n_macroparticles_per_cell": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The number of macroparticles per cell for the pseudo-random layout. Must be an integer greater than or equal to 1."
+        }
+      },
+      "required": ["n_macroparticles_per_cell"],
+      "description": "Defines the layout type and configuration for particles within cells."
+    },   
+    "species_list": {
+      "type": "array",
+      "oneOf": [
+        {
+          "title": "Without Ionization",
+          "properties": {
+            "ENABLE_IONIZATION": { "const": false },
+            "species": {
+              "type": "array",
+              "items": [
+                {
+                  "title": "Primary Electron",
+                  "properties": {
+                    "particle_type": { "const": "electron" },
+                    "name": { "const": "electron" },
+                    "initial_distribution": { "$ref": "#/properties/gaussianProfile" },
+                    "layout": { "$ref": "#/properties/random_layout" }
+                  },
+                  "required": ["particle_type", "name", "initial_distribution", "layout"]
+                },
+                
+                {
+                  "if": { "properties": { "ENABLE_IONS": { "const": true } } },
+                  "then": {
+                    "title": "Generic Ion Species",
+                    "properties": {
+                      "particle_type": { "type": "string", "enum": ["H", "He", "Cu", "other"] },
+                      "name": { "type": "string" },
+                      "picongpu_fixed_charge": { "const": true },
+                      "initial_distribution": { "$ref": "#/properties/gaussianProfile" },
+                      "layout": { "$ref": "#/properties/random_layout" }
+                    },
+                    "required": ["particle_type", "name", "picongpu_fixed_charge", "initial_distribution", "layout"]
+                  }
+                }
+              ]
+            }
+          }
+        },
+        
+        {
+          "title": "With Ionization",
+          "properties": {
+            "ENABLE_IONIZATION": { "const": true },
+            "species": {
+              "type": "array",
+              "items": [
+                {
+                  "title": "Ion Species with Ionization",
+                  "properties": {
+                    "particle_type": { "type": "string", "enum": ["H", "He", "Cu", "other"] },
+                    "name": { "type": "string" },
+                    "charge_state": { "type": "integer", "const": 0 },
+                    "initial_distribution": { "$ref": "#/properties/gaussianProfile" },
+                    "layout": { "$ref": "#/properties/random_layout" }
+                  },
+                  "required": ["particle_type", "name", "charge_state", "initial_distribution", "layout"]
+                },
+                
+                {
+                  "title": "Secondary Electron from Ionization",
+                  "properties": {
+                    "particle_type": { "const": "electron" },
+                    "name": { "const": "electron" },
+                    "initial_distribution": { "type": "null" },
+                    "layout": { "type": "null" }
+                  },
+                  "required": ["particle_type", "name"]
+                }
+              ]
+            },
+            
+            "ionizationModels": {
+              "type": "object",
+              "properties": {
+                "adkModel": {
+                  "type": "object",
+                  "properties": {
+                    "ADK_variant": { "type": "string", "enum": ["CircularPolarization", "LinearPolarization"] },
+                    "ion_species": { "$ref": "#/properties/species_list/oneOf/1/properties/species/items/0" },
+                    "ionization_electron_species": { "$ref": "#/properties/species_list/oneOf/1/properties/species/items/1" },
+                    "ionization_current": { "type": "string" }
+                  },
+                  "required": ["ADK_variant", "ion_species", "ionization_electron_species"]
+                },
+
+                "bsiModel": {
+                  "type": "object",
+                  "properties": {
+                    "BSI_extensions": { 
+                      "type": "array", 
+                      "items": { "type": "string", "enum": ["EffectiveZ"] } 
+                    },
+                    "ion_species": { "$ref": "#/properties/species_list/oneOf/1/properties/species/items/0" },
+                    "ionization_electron_species": { "$ref": "#/properties/species_list/oneOf/1/properties/species/items/1" },
+                    "ionization_current": { "type": "string" }
+                  },
+                  "required": ["BSI_extensions", "ion_species", "ionization_electron_species"]
+                }
+              }
+            },
+
+            "interaction": {
+              "type": "object",
+              "properties": {
+                "ground_state_ionization_model_list": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ADK_variant": { "$ref": "#/properties/ionizationModels/adkModel/properties/ADK_variant" },
+                      "BSI_extensions": { "$ref": "#/properties/ionizationModels/bsiModel/properties/BSI_extensions" }
+                    },
+                    "required": ["ADK_variant", "BSI_extensions"]
+                  },
+                  "description": "List of ionization models used for ground state ionization."
+                }
+              },
+              "required": ["ground_state_ionization_model_list"]
+            }
+          }
+        }
+      ]
+    },
+    "custom_user_inputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "allOf": [
+          {
+            "if": {
+              "properties": { "ADD_CUSTOM_INPUT": { "const": true } }
+            },
+            "then": {
+              "properties": {
+                "png_plugin": {
+                  "type": "object",
+                  "properties": {
+                      "png_plugin_SCALE_IMAGE": { "type": "number" },
+                      "png_plugin_SCALE_TO_CELLSIZE": { "type": "string" },
+                      "png_plugin_WHITE_BOX_PER_GPU": { "type": "string" },
+                      "png_plugin_EM_FIELD_SCALE_CHANNEL1": { "type": "number" },
+                      "png_plugin_EM_FIELD_SCALE_CHANNEL2": { "type": "number" },
+                      "png_plugin_EM_FIELD_SCALE_CHANNEL3": { "type": "number" },
+                      "png_plugin_CUSTOM_NORMALIZATION_SI": { "type": "string" },
+                      "png_plugin_PRE_PARTICLE_DENS_OPACITY": { "type": "number" },
+                      "png_plugin_PRE_CHANNEL1_OPACITY": { "type": "number" },
+                      "png_plugin_PRE_CHANNEL2_OPACITY": { "type": "number" },
+                      "png_plugin_PRE_CHANNEL3_OPACITY": { "type": "number" },
+                      "png_plugin_preParticleDensCol": { "type": "string" },
+                      "png_plugin_preChannel1_colorScale": { "type": "string" },
+                      "png_plugin_preChannel2_colorScale": { "type": "string" },
+                      "png_plugin_preChannel3_colorScale": { "type": "string" },
+                      "png_plugin_preChannel1": { "type": "string" },
+                      "png_plugin_preChannel2": { "type": "string" },
+                      "png_plugin_preChannel3": { "type": "string" },
+                      "png_plugin_period": { "type": "number" },
+                      "png_plugin_axis": { "type": "string" },
+                      "png_plugin_slicePoint": { "type": "number" },
+                      "png_plugin_species_name": { "type": "string" },
+                      "png_plugin_folder_name": { "type": "string" }
+                    },
+                    "required": [
+                      "png_plugin_SCALE_IMAGE",
+                      "png_plugin_SCALE_TO_CELLSIZE",
+                      "png_plugin_WHITE_BOX_PER_GPU",
+                      "png_plugin_EM_FIELD_SCALE_CHANNEL1",
+                      "png_plugin_EM_FIELD_SCALE_CHANNEL2",
+                      "png_plugin_EM_FIELD_SCALE_CHANNEL3",
+                      "png_plugin_CUSTOM_NORMALIZATION_SI",
+                      "png_plugin_PRE_PARTICLE_DENS_OPACITY",
+                      "png_plugin_PRE_CHANNEL1_OPACITY",
+                      "png_plugin_PRE_CHANNEL2_OPACITY",
+                      "png_plugin_PRE_CHANNEL3_OPACITY",
+                      "png_plugin_preParticleDensCol",
+                      "png_plugin_preChannel1_colorScale",
+                      "png_plugin_preChannel2_colorScale",
+                      "png_plugin_preChannel3_colorScale",
+                      "png_plugin_preChannel1",
+                      "png_plugin_preChannel2",
+                      "png_plugin_preChannel3",
+                      "png_plugin_period",
+                      "png_plugin_axis",
+                      "png_plugin_slicePoint",
+                      "png_plugin_species_name",
+                      "png_plugin_folder_name"
+                    ]
+                },
+                "energy_histogram": {
+                  "type": "object",
+                  "properties": {
+                    "energy_histogram_species_name": { "type": "string" },
+                    "energy_histogram_period": { "type": "number" },
+                    "energy_histogram_bin_count": { "type": "number" },
+                    "energy_histogram_min_energy": { "type": "number" },
+                    "energy_histogram_max_energy": { "type": "number" },
+                    "energy_histogram_filter": { "type": "string" }
+                  },
+                  "required": ["energy_histogram_species_name", "energy_histogram_period", "energy_histogram_bin_count", "energy_histogram_min_energy", "energy_histogram_max_energy", "energy_histogram_filter"]
+                },
+                "phase_space": {
+                  "type": "object",
+                  "properties": {
+                    "phase_space_species_name": { "type": "string" },
+                    "phase_space_period": { "type": "number" },
+                    "phase_space_space": { "type": "string" },
+                    "phase_space_momentum": { "type": "string" },
+                    "phase_space_min": { "type": "number" },
+                    "phase_space_max": { "type": "number" },
+                    "phase_space_filter": { "type": "string" }
+                  },
+                  "required": ["phase_space_species_name", "phase_space_period", "phase_space_space",  "phase_space_momentum", "phase_space_min", "phase_space_max", "phase_space_filter"]
+                },
+                "openPMD": {
+                  "type": "object",
+                  "properties": {
+                    "openPMD_period": { "type": "number" },
+                    "openPMD_file": { "type": "string" },
+                    "openPMD_extension": { "type": "string" }
+                  },
+                  "required": ["openPMD_period", "openPMD_file", "openPMD_extension"]
+                },
+                "checkpoint": {
+                  "type": "object",
+                  "properties": {
+                    "checkpoint_period": { "type": "number" },
+                    "checkpoint_backend": { "type": "string" },
+                    "checkpoint_restart_backend": { "type": "string" }
+                  },
+                  "required": ["checkpoint_period", "checkpoint_backend", "checkpoint_restart_backend"]
+                },
+                "macro_particle_count": {
+                  "type": "object",
+                  "properties": {
+                    "macro_particle_count_period": { "type": "number" },
+                    "macro_particle_count_species_name": { "type": "string" }
+                  },
+                  "required": ["macro_particle_count_period", "macro_particle_count_species_name"]
+                }
+              },
+              "required": ["png_plugin", "energy_histogram", "phase_space", "openPMD", "checkpoint", "macro_particle_count"]
+            }
+          }
+        ]
+      }
+    },
+
+    "simulation": {
+      "type": "object",
+      "properties": {
+        "solver": { "$ref": "#/properties/solver" },
+        "max_steps": { "type": "integer", "minimum": 1 },
+        "time_step_size": { "type": "number", "minimum": 0 },
+        "picongpu_moving_window_move_point": { "type": "number", "minimum": 0, "maximum": 1 },
+        "picongpu_interaction": { "$ref": "#/properties/species_list/oneOf/1/properties/interaction" },
+        "picongpu_template_dir": { "$ref": "#/properties/custom_template_directory" },
+        "laser": { "$ref": "#/properties/laser" },
+        "species_list": { "$ref": "#/properties/species_list" },
+        "custom_user_inputs": { "$ref": "#/properties/custom_user_inputs" },
+        "OUTPUT_DIRECTORY_PATH": { "$ref": "#/properties/OUTPUT_DIRECTORY_PATH" }
+      },
+      "required": ["solver", "max_steps", "time_step_size", "picongpu_moving_window_move_point", "picongpu_interaction", "picongpu_template_dir", "laser", "species_list","custom_user_inputs","OUTPUT_DIRECTORY_PATH"]
+    }
+  }
+}
