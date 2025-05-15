@@ -1,50 +1,8 @@
-/* Existing App.css */
 .App {
   text-align: center;
-  /* Optional: you can set padding or other properties as needed */
-}
-
-/* Existing App-logo styles */
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-  background-image: url('P:\afshari\PROPSALS\HZDR_Project\react\picongpu_react\public\northern-light.jpg'); /* Replace with actual image URL */
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
 }
 
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* New styles for header with logos */
 .header {
   display: flex;
   justify-content: space-between;
@@ -57,22 +15,21 @@
   right: 10px;
 }
 
-.logo-left, .logo-right {
-  width: 100px; /* Adjust width  for both logos */
-  height: auto; /* Maintain aspect ratio */
+.logo-left, .logo-right, .picongpu-logo {
+  width: 100px;
+  height: auto;
 }
 
-.logo-left {
-  margin-left: 20px;
+.logo-left { margin-left: 20px; }
+.logo-right { margin-right: 20px; }
+
+.picongpu-logo-container {
+  text-align: center;
+  margin: 20px 0;
 }
 
-.logo-right {
-  margin-right: 20px;
-}
-
-/* Style for form elements */
 form {
-  background-color: rgba(255, 255, 255, 0.8); /* Slight white background */
+  background-color: rgba(255, 255, 255, 0.8);
   padding: 20px;
   border-radius: 10px;
   margin: 50px auto;
@@ -83,8 +40,7 @@ form {
   box-sizing: border-box;
 }
 
-/* Style the input fields */
-input[type="text"] {
+input[type="text"], textarea, select {
   width: 100%;
   padding: 10px;
   margin: 8px 0;
@@ -94,14 +50,24 @@ input[type="text"] {
   box-sizing: border-box;
 }
 
+textarea { resize: vertical; }
+
 input[type="text"]::placeholder {
   color: #888;
   font-style: italic;
 }
 
-/* Add some style to the submit button */
+input[type="checkbox"] {
+  margin: 8px 10px 8px 0;
+}
+
+.read-only-field {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+}
+
 button {
-  background-color: #4CAF50; /* Green */
+  background-color: #4CAF50;
   color: white;
   padding: 12px 24px;
   border: none;
@@ -114,60 +80,35 @@ button:hover {
   background-color: #45a049;
 }
 
-/* New styles for footer */
 .footer {
   text-align: center;
   padding: 10px;
   font-size: 12px;
   color: white;
-  background-color: rgba(0, 0, 0, 0.5); /* Optional: gives a dark transparent background for footer */
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
-
-/*
-.App {
-  text-align: center;
+.form-group {
+  margin: 10px 0;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.nested-fieldset {
+  border: 1px solid #ccc;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 5px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.error {
+  color: red;
+  font-size: 0.8em;
+  margin-top: 5px;
+  display: block;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.species-list-section, .ionization-model, .species-item {
+  margin: 15px 0;
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 5px;
 }
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-*/ 
-
-
-
-
-
-
-
