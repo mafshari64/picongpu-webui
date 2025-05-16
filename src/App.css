@@ -30,7 +30,7 @@
 
 form {
   background-color: rgba(255, 255, 255, 0.8);
-  padding: 20px;
+  padding: 30px; /* Increased from 20px for better spacing */
   border-radius: 10px;
   margin: 50px auto;
   width: 80%;
@@ -38,6 +38,15 @@ form {
   position: relative;
   z-index: 1;
   box-sizing: border-box;
+}
+
+/* Responsive form styling for smaller screens */
+@media (max-width: 600px) {
+  form {
+    width: 95%;
+    margin: 20px auto;
+    padding: 20px;
+  }
 }
 
 input[type="text"], textarea, select {
@@ -67,17 +76,21 @@ input[type="checkbox"] {
 }
 
 button {
-  background-color: #4CAF50;
-  color: white;
   padding: 12px 24px;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   font-size: 16px;
+  min-width: 120px; /* Added for consistent button width */
 }
 
-button:hover {
-  background-color: #45a049;
+button:not([class*="bg-"]) {
+  background-color: #3b82f6; /* Fallback to blue, matches .bg-blue-500 */
+  color: white;
+}
+
+button:not([class*="bg-"]):hover {
+  background-color: #2563eb; /* Matches .hover:bg-blue-600 */
 }
 
 .footer {
@@ -101,8 +114,9 @@ button:hover {
 
 .error {
   color: red;
-  font-size: 0.8em;
+  font-size: 0.9em; /* Increased from 0.8em for readability */
   margin-top: 5px;
+  padding-left: 5px;
   display: block;
 }
 
@@ -119,11 +133,13 @@ button:hover {
   border: 1px solid #ccc;
   border-radius: 5px;
 }
+
 .diagnostic-item {
   margin-bottom: 15px;
   padding: 10px;
   background-color: #f9f9f9;
 }
+
 .diagnostic-item h4 {
   margin-top: 0;
 }
@@ -137,10 +153,12 @@ button:hover {
 .array-input-group {
   margin-bottom: 15px;
 }
+
 .array-inputs {
   display: flex;
   gap: 10px;
 }
+
 .array-element-input {
   width: 120px;
   padding: 5px;
@@ -153,11 +171,23 @@ button:hover {
   padding: 10px;
   margin: 5px 0;
 }
+
 .read-only-fieldset input, .read-only-fieldset textarea, .read-only-fieldset select,
 .nested-ref input, .nested-ref textarea, .nested-ref select {
   background-color: #e0e0e0;
   cursor: not-allowed;
 }
+
 .nested-ref {
   margin-left: 20px;
 }
+
+.bg-blue-500 { background-color: #3b82f6; }
+.hover\:bg-blue-600:hover { background-color: #2563eb; }
+.text-white { color: #ffffff; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.rounded-md { border-radius: 0.375rem; }
+.mt-4 { margin-top: 1.5rem; } /* Increased from 1rem for better spacing */
+.bg-red-500 { background-color: #ef4444; } /* Added for Remove Diagnostic button */
+.hover\:bg-red-600:hover { background-color: #dc2626; } /* Added for Remove Diagnostic hover */
