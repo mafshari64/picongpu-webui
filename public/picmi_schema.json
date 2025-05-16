@@ -118,14 +118,16 @@
           "items": { "type": "number" },
           "minItems": 1,
           "maxItems": 3,
-          "description": "Focal position of the laser (1D: 1 item, 2D: 2 items, 3D: 3 items)."
+          "description": "Focal position of the laser (1D: 1 item, 2D: 2 items, 3D: 3 items).",
+          "default": [0.0000170112, 4.62e-5, 0.0000170112]
         },
         "centroid_position": {
           "type": "array",
           "items": { "type": "number" },
           "minItems": 1,
           "maxItems": 3,
-          "description": "Centroid position of the laser (1D: 1 item, 2D: 2 items, 3D: 3 items)."
+          "description": "Centroid position of the laser (1D: 1 item, 2D: 2 items, 3D: 3 items).",
+          "default": [0.0000170112, 0.0, 0.0000170112]
         },
         "a0": { "type": "number", "minimum": 0, "default": 8.0 },
         "phase": { "type": "number", "minimum": 0, "default": 0.0 },
@@ -152,6 +154,7 @@
               "items": [
                 {
                   "title": "Primary Electron",
+                  "type": "object",
                   "properties": {
                     "particle_type": { "const": "electron" },
                     "name": { "const": "electron" },
@@ -174,7 +177,8 @@
                     "required": ["particle_type", "name", "picongpu_fixed_charge", "initial_distribution", "layout"]
                   }
                 }
-              ]
+              ],
+              "minItems": 1
             }
           }
         },
@@ -182,6 +186,7 @@
           "title": "With Ionization",
           "properties": {
             "ENABLE_IONIZATION": { "const": true },
+            "ENABLE_IONS": { "const": true },            
             "species": {
               "type": "array",
               "items": [
@@ -198,15 +203,17 @@
                 },
                 {
                   "title": "Secondary Electron from Ionization",
+                  "type": "object",
                   "properties": {
                     "particle_type": { "const": "electron" },
                     "name": { "const": "electron" },
                     "initial_distribution": { "type": "null" },
                     "layout": { "type": "null" }
                   },
-                  "required": ["particle_type", "name"]
+                  "required": ["particle_type", "name", "initial_distribution", "layout"]
                 }
-              ]
+              ],
+              "minItems": 2
             },
             "ionizationModels": {
               "type": "object",
@@ -217,7 +224,7 @@
                     "ADK_variant": { "type": "string", "enum": ["CircularPolarization", "LinearPolarization"] },
                     "ion_species": { "$ref": "#/properties/species_list/oneOf/1/properties/species/items/0" },
                     "ionization_electron_species": { "$ref": "#/properties/species_list/oneOf/1/properties/species/items/1" },
-                    "ionization_current": { "type": "string" }
+                    "ionization_current": { "type": "null" }
                   },
                   "required": ["ADK_variant", "ion_species", "ionization_electron_species"]
                 },
@@ -226,15 +233,17 @@
                   "properties": {
                     "BSI_extensions": { 
                       "type": "array", 
-                      "items": { "type": "string", "enum": ["EffectiveZ"] } 
+                      "items": { "type": "string", "enum": ["EffectiveZ"] },
+                      "default": ["EffectiveZ"]
                     },
                     "ion_species": { "$ref": "#/properties/species_list/oneOf/1/properties/species/items/0" },
                     "ionization_electron_species": { "$ref": "#/properties/species_list/oneOf/1/properties/species/items/1" },
-                    "ionization_current": { "type": "string" }
+                    "ionization_current": { "type": "null" }
                   },
                   "required": ["BSI_extensions", "ion_species", "ionization_electron_species"]
                 }
-              }
+              },
+              "required": ["adkModel", "bsiModel"]
             },
             "interaction": {
               "type": "object",
@@ -249,125 +258,169 @@
                     },
                     "required": ["ADK_variant", "BSI_extensions"]
                   },
+                  "minItems": 2,
                   "description": "List of ionization models used for ground state ionization."
                 }
               },
               "required": ["ground_state_ionization_model_list"]
             }
-          }
+          },
+          "required": ["ENABLE_IONIZATION", "ENABLE_IONS", "species", "ionizationModels", "interaction"]
         }
       ]
     },
     "ADD_CUSTOM_INPUT": { "type": "boolean", "default": true },
-    "custom_user_inputs": {
+    "custom_user_input": {
+      "type": "object",
+      "allOf": [
+        {
+          "if": { "properties": { "ADD_CUSTOM_INPUT": { "const": true } } },
+          "then": {
+            "properties": {
+              "minimum_weight": { "type": "number", "default": 10.0 }
+            },
+            "required": ["minimum_weight"]
+          }
+        }
+      ]
+    },
+    "diagnostics": {
       "type": "array",
       "items": {
         "type": "object",
-        "allOf": [
+        "oneOf": [
           {
-            "if": { "properties": { "ADD_CUSTOM_INPUT": { "const": true } } },
-            "then": {
-              "properties": {
-                "png_plugin": {
-                  "type": "object",
-                  "properties": {
-                    "png_plugin_SCALE_IMAGE": { "type": "number", "default": 1.0 },
-                    "png_plugin_SCALE_TO_CELLSIZE": { "type": "boolean", "default": true },
-                    "png_plugin_WHITE_BOX_PER_GPU": { "type": "boolean", "default": false },
-                    "png_plugin_EM_FIELD_SCALE_CHANNEL1": { "type": "number", "default": 7 },
-                    "png_plugin_EM_FIELD_SCALE_CHANNEL2": { "type": "number", "default": -1 },
-                    "png_plugin_EM_FIELD_SCALE_CHANNEL3": { "type": "number", "default": -1 },
-                    "png_plugin_CUSTOM_NORMALIZATION_SI": { 
-                      "type": "array", 
-                      "items": { "type": "number" }, 
-                      "default": [5.0e12 / 299792458, 5.0e12, 15.0] 
-                    },
-                    "png_plugin_PRE_PARTICLE_DENS_OPACITY": { "type": "number", "default": 0.25 },
-                    "png_plugin_PRE_CHANNEL1_OPACITY": { "type": "number", "default": 1.0 },
-                    "png_plugin_PRE_CHANNEL2_OPACITY": { "type": "number", "default": 1.0 },
-                    "png_plugin_PRE_CHANNEL3_OPACITY": { "type": "number", "default": 1.0 },
-                    "png_plugin_preParticleDensCol": { "type": "string", "default": "grayInv" },
-                    "png_plugin_preChannel1_colorScale": { "type": "string", "default": "green" },
-                    "png_plugin_preChannel2_colorScale": { "type": "string", "default": "none" },
-                    "png_plugin_preChannel3_colorScale": { "type": "string", "default": "none" },
-                    "png_plugin_preChannel1": { "type": "string", "default": "field_E.x() * field_E.x()" },
-                    "png_plugin_preChannel2": { "type": "string", "default": "field_E.y()" },
-                    "png_plugin_preChannel3": { "type": "string", "default": "-1.0_X * field_E.y()" },
-                    "png_plugin_period": { "type": "number", "default": 100 },
-                    "png_plugin_axis": { "type": "string", "default": "yx" },
-                    "png_plugin_slicePoint": { "type": "number", "default": 0.5 },
-                    "png_plugin_species_name": { "type": "string", "default": "electron" },
-                    "png_plugin_folder_name": { "type": "string", "default": "pngElectronsYX" }
-                  },
-                  "required": [
-                    "png_plugin_SCALE_IMAGE", "png_plugin_SCALE_TO_CELLSIZE", "png_plugin_WHITE_BOX_PER_GPU",
-                    "png_plugin_EM_FIELD_SCALE_CHANNEL1", "png_plugin_EM_FIELD_SCALE_CHANNEL2", "png_plugin_EM_FIELD_SCALE_CHANNEL3",
-                    "png_plugin_CUSTOM_NORMALIZATION_SI", "png_plugin_PRE_PARTICLE_DENS_OPACITY", "png_plugin_PRE_CHANNEL1_OPACITY",
-                    "png_plugin_PRE_CHANNEL2_OPACITY", "png_plugin_PRE_CHANNEL3_OPACITY", "png_plugin_preParticleDensCol",
-                    "png_plugin_preChannel1_colorScale", "png_plugin_preChannel2_colorScale", "png_plugin_preChannel3_colorScale",
-                    "png_plugin_preChannel1", "png_plugin_preChannel2", "png_plugin_preChannel3", "png_plugin_period",
-                    "png_plugin_axis", "png_plugin_slicePoint", "png_plugin_species_name", "png_plugin_folder_name"
-                  ]
-                },
-                "energy_histogram": {
-                  "type": "object",
-                  "properties": {
-                    "energy_histogram_species_name": { "type": "string", "default": "electron" },
-                    "energy_histogram_period": { "type": "number", "default": 100 },
-                    "energy_histogram_bin_count": { "type": "number", "default": 1024 },
-                    "energy_histogram_min_energy": { "type": "number", "default": 0.0 },
-                    "energy_histogram_max_energy": { "type": "number", "default": 1000.0 },
-                    "energy_histogram_filter": { "type": "string" }
-                  },
-                  "required": ["energy_histogram_species_name", "energy_histogram_period", "energy_histogram_bin_count", 
-                              "energy_histogram_min_energy", "energy_histogram_max_energy"]
-                },
-                "phase_space": {
-                  "type": "object",
-                  "properties": {
-                    "phase_space_species_name": { "type": "string", "default": "electron" },
-                    "phase_space_period": { "type": "number", "default": 100 },
-                    "phase_space_space": { "type": "string", "default": "y" },
-                    "phase_space_momentum": { "type": "string", "default": "py" },
-                    "phase_space_min": { "type": "number", "default": -1.0 },
-                    "phase_space_max": { "type": "number", "default": 1.0 },
-                    "phase_space_filter": { "type": "string" }
-                  },
-                  "required": ["phase_space_species_name", "phase_space_period", "phase_space_space", 
-                              "phase_space_momentum", "phase_space_min", "phase_space_max"]
-                },
-                "openPMD": {
-                  "type": "object",
-                  "properties": {
-                    "openPMD_period": { "type": "number", "default": 100 },
-                    "openPMD_file": { "type": "string", "default": "simOutput" },
-                    "openPMD_extension": { "type": "string", "default": "bp" }
-                  },
-                  "required": ["openPMD_period", "openPMD_file", "openPMD_extension"]
-                },
-                "checkpoint": {
-                  "type": "object",
-                  "properties": {
-                    "checkpoint_period": { "type": "number", "default": 100 },
-                    "checkpoint_backend": { "type": "string" },
-                    "checkpoint_restart_backend": { "type": "string" }
-                  },
-                  "required": ["checkpoint_period"]
-                },
-                "macro_particle_count": {
-                  "type": "object",
-                  "properties": {
-                    "macro_particle_count_period": { "type": "number", "default": 100 },
-                    "macro_particle_count_species_name": { "type": "string", "default": "electron" }
-                  },
-                  "required": ["macro_particle_count_period", "macro_particle_count_species_name"]
-                }
+            "title": "PhaseSpace",
+            "properties": {
+              "type": { "const": "PhaseSpace" },
+              "species_name": { "type": "string", "default": "electron" },
+              "period": {
+                "type": "string",
+                "default": "[::100, 50:72:7, 17]",
+                "description": "Time step specification, e.g., '[::100, 50:72:7, 17]' for steps 17, 50, 57, 64, 71, 100, 200, ..."
               },
-              "required": ["png_plugin", "energy_histogram", "phase_space", "openPMD", "checkpoint", "macro_particle_count"]
-            }
+              "spatial_coordinate": { "type": "string", "default": "y", "enum": ["x", "y", "z"] },
+              "momentum_coordinate": { "type": "string", "default": "py", "enum": ["px", "py", "pz"] },
+              "min_momentum": { "type": "number", "default": -1.0 },
+              "max_momentum": { "type": "number", "default": 1.0 }
+            },
+            "required": ["type", "species_name", "period", "spatial_coordinate", "momentum_coordinate", "min_momentum", "max_momentum"]
+          },
+          {
+            "title": "EnergyHistogram",
+            "properties": {
+              "type": { "const": "EnergyHistogram" },
+              "species_name": { "type": "string", "default": "electron" },
+              "period": {
+                "type": "string",
+                "default": "[::100]",
+                "description": "Time step specification, e.g., '[::100]' for every 100 steps."
+              },
+              "bin_count": { "type": "integer", "minimum": 1, "default": 1024 },
+              "min_energy": { "type": "number", "minimum": 0, "default": 0.0 },
+              "max_energy": { "type": "number", "exclusiveMinimum": 0, "default": 1000.0 }
+            },
+            "required": ["type", "species_name", "period", "bin_count", "min_energy", "max_energy"]
+          },
+          {
+            "title": "MacroParticleCount",
+            "properties": {
+              "type": { "const": "MacroParticleCount" },
+              "species_name": { "type": "string", "default": "electron" },
+              "period": {
+                "type": "string",
+                "default": "[::100]",
+                "description": "Time step specification, e.g., '[::100]' for every 100 steps."
+              }
+            },
+            "required": ["type", "species_name", "period"]
+          },
+          {
+            "title": "Png",
+            "properties": {
+              "type": { "const": "Png" },
+              "species_name": { "type": "string", "default": "electron" },
+              "period": {
+                "type": "string",
+                "default": "[::100]",
+                "description": "Time step specification, e.g., '[::100]' for every 100 steps."
+              },
+              "axis": { "type": "string", "default": "yx", "enum": ["xy", "xz", "yx", "yz", "zx", "zy"] },
+              "slice_point": { "type": "number", "default": 0.5 },
+              "folder_name": { "type": "string", "default": "pngElectronsYX" },
+              "scale_image": { "type": "number", "default": 1.0 },
+              "scale_to_cellsize": { "type": "boolean", "default": true },
+              "white_box_per_gpu": { "type": "boolean", "default": false },
+              "em_field_scale_channel1": { "type": "integer", "default": 7 },
+              "em_field_scale_channel2": { "type": "integer", "default": -1 },
+              "em_field_scale_channel3": { "type": "integer", "default": -1 },
+              "pre_particle_density_color_scales": { "type": "string", "default": "grayInv", "enum": ["grayInv", "none"] },
+              "pre_channel1_color_scales": { "type": "string", "default": "green", "enum": ["green", "none"] },
+              "pre_channel2_color_scales": { "type": "string", "default": "none", "enum": ["none"] },
+              "pre_channel3_color_scales": { "type": "string", "default": "none", "enum": ["none"] },
+              "custom_normalization_si": {
+                "type": "array",
+                "items": { "type": "number" },
+                "default": [16678.20, 5.0e12, 15.0]
+              },
+              "pre_particle_density_opacity": { "type": "number", "default": 0.25 },
+              "pre_channel1_opacity": { "type": "number", "default": 1.0 },
+              "pre_channel2_opacity": { "type": "number", "default": 1.0 },
+              "pre_channel3_opacity": { "type": "number", "default": 1.0 },
+              "pre_channel1": { "type": "string", "default": "field_E.x() * field_E.x()" },
+              "pre_channel2": { "type": "string", "default": "field_E.y()" },
+              "pre_channel3": { "type": "string", "default": "-1.0_X * field_E.y()" }
+            },
+            "required": [
+              "type", "species_name", "period", "axis", "slice_point", "folder_name", "scale_image",
+              "scale_to_cellsize", "white_box_per_gpu", "em_field_scale_channel1", "em_field_scale_channel2",
+              "em_field_scale_channel3", "pre_particle_density_color_scales", "pre_channel1_color_scales",
+              "pre_channel2_color_scales", "pre_channel3_color_scales", "custom_normalization_si",
+              "pre_particle_density_opacity", "pre_channel1_opacity", "pre_channel2_opacity",
+              "pre_channel3_opacity", "pre_channel1", "pre_channel2", "pre_channel3"
+            ]
+          },
+          {
+            "title": "Checkpoint",
+            "properties": {
+              "type": { "const": "Checkpoint" },
+              "period": {
+                "type": "string",
+                "default": "[::100]",
+                "description": "Time step specification, e.g., '[::100]' for every 100 steps."
+              },
+              "timePeriod": { "type": "number", "minimum": 0 },
+              "directory": { "type": "string" },
+              "file": { "type": "string" },
+              "openPMD": {
+                "type": "object",
+                "properties": {
+                  "ext": { "type": "string", "enum": ["h5", "bp"] },
+                  "json": { "type": "string" }
+                }
+              }
+            },
+            "required": ["type", "period"]
+          },
+          {
+            "title": "OpenPMD",
+            "properties": {
+              "type": { "const": "OpenPMD" },
+              "period": {
+                "type": "string",
+                "default": "[::100]",
+                "description": "Time step specification, e.g., '[::100]' for every 100 steps."
+              },
+              "file": { "type": "string", "default": "simOutput" },
+              "ext": { "type": "string", "default": "bp", "enum": ["bp", "h5"] }
+            },
+            "required": ["type", "period", "file", "ext"]
           }
         ]
-      }
+      },
+      "minItems": 1,
+      "maxItems": 6
     }
-  }
+  },
+  "required": ["grid", "solver", "laser", "species_list", "diagnostics"]
 }

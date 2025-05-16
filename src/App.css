@@ -112,3 +112,52 @@ button:hover {
   border: 1px solid #eee;
   border-radius: 5px;
 }
+
+.diagnostics-section {
+  margin: 20px 0;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+.diagnostic-item {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f9f9f9;
+}
+.diagnostic-item h4 {
+  margin-top: 0;
+}
+
+.array-element-input {
+  display: inline-block;
+  width: 100px;
+  margin-right: 10px;
+}
+
+.array-input-group {
+  margin-bottom: 15px;
+}
+.array-inputs {
+  display: flex;
+  gap: 10px;
+}
+.array-element-input {
+  width: 120px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.read-only-fieldset, .nested-ref {
+  background-color: #f9f9f9;
+  padding: 10px;
+  margin: 5px 0;
+}
+.read-only-fieldset input, .read-only-fieldset textarea, .read-only-fieldset select,
+.nested-ref input, .nested-ref textarea, .nested-ref select {
+  background-color: #e0e0e0;
+  cursor: not-allowed;
+}
+.nested-ref {
+  margin-left: 20px;
+}
