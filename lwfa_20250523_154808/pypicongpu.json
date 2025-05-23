@@ -1,0 +1,75 @@
+{
+  "ENABLE_IONS": true,
+  "ENABLE_IONIZATION": true,
+  "OUTPUT_DIRECTORY_PATH": "lwfa",
+  "numberCells": "[192,2048,192]",
+  "cellSize": "[0.0001772,0.0000443,0.0001772]",
+  "grid": {
+    "picongpu_n_gpus": "[2,4,1]",
+    "number_of_cells": "[192,2048,192]",
+    "lower_bound": "[0,0,0]",
+    "upper_bound": "[0.0340224,0.0907264,0.0340224]",
+    "lower_boundary_conditions": "[\"open\",\"open\",\"open\"]",
+    "upper_boundary_conditions": "[\"open\",\"open\",\"open\"]",
+    "diagnostics": []
+  },
+  "solver": {
+    "grid": {
+      "picongpu_n_gpus": "[2,4,1]",
+      "number_of_cells": "[192,2048,192]",
+      "lower_bound": "[0,0,0]",
+      "upper_bound": "[0.0340224,0.0907264,0.0340224]",
+      "lower_boundary_conditions": "[\"open\",\"open\",\"open\"]",
+      "upper_boundary_conditions": "[\"open\",\"open\",\"open\"]",
+      "diagnostics": []
+    },
+    "method": "Yee",
+    "diagnostics": []
+  },
+  "gaussianProfile": {
+    "density": 1e+25,
+    "center_front": 8e-05,
+    "sigma_front": 8e-05,
+    "center_rear": 0.0001,
+    "sigma_rear": 8e-05,
+    "factor": -1,
+    "power": 4,
+    "vacuum_cells_front": 50,
+    "diagnostics": []
+  },
+  "laser": {
+    "wavelength": 8e-07,
+    "waist": 4.25e-06,
+    "duration": 5e-15,
+    "propagation_direction": "[0,1,0]",
+    "polarization_direction": "[1,0,0]",
+    "focal_position": "[0.0000170112,0.0000462,0.0000170112]",
+    "centroid_position": "[0.0000170112,0,0.0000170112]",
+    "a0": 8,
+    "phase": "",
+    "polarization_type": "CIRCULAR",
+    "diagnostics": []
+  },
+  "random_layout": {
+    "n_macroparticles_per_cell": 2,
+    "diagnostics": []
+  },
+  "species_list": {
+    "diagnostics": []
+  },
+  "ADD_CUSTOM_INPUT": true,
+  "custom_user_input": {
+    "minimum_weight": 10
+  },
+  "diagnostics": [
+    {
+      "type": "PhaseSpace",
+      "species_name": "electron",
+      "period": "[::100, 50:72:7, 17]",
+      "spatial_coordinate": "y",
+      "momentum_coordinate": "py",
+      "min_momentum": -1,
+      "max_momentum": 1
+    }
+  ]
+}
