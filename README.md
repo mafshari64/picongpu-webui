@@ -1,70 +1,61 @@
-# Getting Started with Create React App
+PIConGPU React Web Interface
+This project is a web interface for configuring and submitting PIConGPU simulations. It uses a React frontend and FastAPI backend to generate simulation input files locally, with plans for supercomputer integration. Below is an overview of key files and their purpose.
+Project Structure
+picongpu_react/
+├── **Backend/**
+│   ├── **app.py** - FastAPI backend handling API requests. Receives form data from the frontend, saves it as `pypicongpu.json` in a specified directory (e.g., `src/components/outputs/`), using `PROJECT_ROOT` from `.env` for flexibility.
+│   ├── **.env** - Stores configuration variables like `PROJECT_ROOT` (e.g., `P:/afshari/PROPSALS/HZDR_Project/react/picongpu_react`) and `REACT_APP_URL` to avoid hardcoding paths and URLs.
+├── **src/**
+│   ├── **components/**
+│   │   ├── **PICMIInputForm.js** - Core React component for the simulation input form. Uses `picmi_schema.json` to dynamically generate fields, validates inputs, and sends data (`formData`, `baseDirectory`, `simulationName`) to `/submit-job` via **axios**.
+│   ├── **store/** (assumed)
+│   │   ├── **index.js** - Configures the **Redux** store to manage global state (e.g., form data, submission status) across components, ensuring predictable state updates.
+│   │   ├── **slices/** - Contains **Redux** slices (e.g., `formSlice.js`) defining reducers and actions for form state management.
+├── **public/**
+│   ├── **picmi_schema.json** - JSON schema defining the structure of PIConGPU simulation inputs. Drives dynamic form rendering in **PICMIInputForm.js**, ensuring fields match PIConGPU requirements.
+├── **package.json** - Lists project dependencies (`react`, `axios`, `redux`, etc.) and scripts (`start`, `build`).
+├── **.gitignore** - Excludes `node_modules`, `.env`, and build artifacts from Git.
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Why We Use Key Components
+- **Redux**: Manages complex form state (e.g., nested simulation parameters) centrally, making it easier to share data between components and debug state changes.
+- **picmi_schema.json**: Defines the PIConGPU input structure, enabling dynamic form generation without hardcoding fields, ensuring flexibility for schema updates.
+- **PICMIInputForm.js**: Provides a user-friendly interface for inputting simulation parameters, validates data against the schema, and communicates with the backend to save JSON files.
+- **app.py**: Handles backend logic, saving `pypicongpu.json` locally for testing, with a structure ready for future supercomputer job submission.
+- **.env**: Centralizes configuration (e.g., project paths) to avoid hardcoding, improving portability across systems.
 
-## Available Scripts
+## Running the Application Locally
+To view the input form (`PICMIInputForm.js`) locally:
+1. Clone the repository: `git clone <your-repo-url>`
+2. Install dependencies:
+   ```bash
+   cd picongpu_react
+   npm install
+   cd Backend
+   pip install fastapi uvicorn pydantic python-dotenv
 
-In the project directory, you can run:
 
-### `npm start`
+Start the backend:cd Backend
+uvicorn app:app --host 0.0.0.0 --port 8000
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+Start the frontend:cd ..
+npm start
 
-### `npm test`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Open http://localhost:3000 in your browser to access the input form.
 
-### `npm run build`
+The form saves pypicongpu.json to <PROJECT_ROOT>/<baseDirectory>/<simulationName>_<timestamp>/ (e.g., src/components/outputs/lwfa-rdf_20250523_1450/).
+Hosting the Application (Optional)
+To share the input form online:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Deploy the frontend to a platform like Vercel, Netlify, or an HZDR server. Update REACT_APP_URL in .env and the API endpoint in PICMIInputForm.js (e.g., axios.post('https://your-backend.com/submit-job')).
+Host the backend on a server with a public URL (e.g., AWS, Heroku, or HZDR infrastructure).
+Update this README with the public URL (e.g., https://picongpu-web.hzdr.de) once deployed.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Contact the project maintainer for access to a hosted version (if available).
+Notes
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Supercomputer integration (e.g., SLURM submission) is planned but currently deferred.
+Share generated JSON in #PICReactSims for feedback.
+Check the Git repository for the latest updates: <your-repo-url>.
 
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)

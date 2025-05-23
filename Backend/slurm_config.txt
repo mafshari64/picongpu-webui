@@ -1,0 +1,40 @@
+# SLURM Configuration for PIConGPU Simulation
+# Format: KEY=VALUE
+# Lines starting with # are comments
+# Modify for your supercomputer and user settings
+
+# User-specific settings
+MY_MAILNOTIFY=ALL
+MY_MAIL=m.afshari@hzdr.de
+EDITOR=vim
+
+# PIConGPU and simulation paths
+PICSRC=/home/<your_username>/picongpu
+SCRATCH=/bigdata/hplsim/external/<your_username>
+SIMULATION_FOLDER=%SIMULATION_NAME%
+
+# SLURM directives
+JOB_NAME=picongpu_simulation
+NODES=1
+NTASKS_PER_NODE=4
+CPUS_PER_TASK=6
+GRES=gpu:4
+TIME=01:00:00
+PARTITION=casus
+MEM=378000
+OUTPUT_FILE=%WORKDIR%/output_%JOBID%.out
+ERROR_FILE=%WORKDIR%/error_%JOBID%.err
+SUBMIT=sbatch
+TPLFILE=etc/picongpu/hemera-hzdr/fwkt_v100.tpl
+
+# Modules to load
+MODULES=git gcc/12.2.0 cuda/12.1 libfabric/1.17.0 ucx/1.14.0-gdr openmpi/4.1.5-cuda121-gdr python/3.10.4 boost/1.82.0 zlib/1.2.11 hdf5-parallel/1.12.0-omp415-cuda121 c-blosc/1.21.4 adios2/2.9.2-cuda121 openpmd/0.15.2-cuda121 cmake/3.26.1 fftw/3.3.10-ompi415-cuda121-gdr libpng/1.6.39 pngwriter/0.7.0
+
+# Environment variables
+PIC_BACKEND=cuda:70
+PIC_SYSTEM_TEMPLATE_PATH=etc/picongpu/hemera-hzdr
+PATH_EXTRAS=%PICSRC%/bin:%PICSRC%/src/tools/bin
+PYTHONPATH_EXTRAS=%PICSRC%/lib/python
+
+# Execution command
+EXEC_COMMAND=tbg -f -s -t -c etc/picongpu/N.cfg %SCRATCH%/%SIMULATION_FOLDER%

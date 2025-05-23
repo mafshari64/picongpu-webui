@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import axios from 'axios';
 
 const getNestedValue = (obj, path) => {
   return path.split('.').reduce((current, key) => {
@@ -11,7 +12,7 @@ const getNestedValue = (obj, path) => {
 };
 
 const setNestedValue = (obj, path, value) => {
-  const pathParts = path.split(/[\[\].]+/).filter(Boolean);
+  const pathParts = path.split(/[[\].]+/).filter(Boolean);
   let current = obj;
   for (let i = 0; i < pathParts.length - 1; i++) {
     const part = pathParts[i];
@@ -172,6 +173,9 @@ const initializeValues = (schema) => {
 const PICMIInputForm = ({ schema }) => {
   const [values, setValues] = useState(() => initializeValues(schema));
   const [errorMessages, setErrorMessages] = useState({});
+  const [submissionStatus, setSubmissionStatus] = useState(null);
+  const [baseDirectory, setBaseDirectory] = useState('simulations');
+  const [simulationName, setSimulationName] = useState('');
 
   const handleChange = useCallback(
     (fieldName, value, fieldSchema, parentKey = "") => {
@@ -1037,22 +1041,37 @@ const PICMIInputForm = ({ schema }) => {
     );
   };
 
-const handleSubmit = (e) => {
-  e.preventDefault();
-  const errors = {};
-  Object.entries(schema.properties).forEach(([key, fieldSchema]) => {
-    const value = getNestedValue(values, key);
-    const error = validateField(key, value, fieldSchema);
-    if (error) errors[key] = error;
-  });
-  if (Object.keys(errors).length > 0) {
-    setErrorMessages(errors);
-    alert("Please fix form errors before submitting.");
-    return;
-  }
-  console.log("Form submitted with values:", JSON.stringify(values, null, 2));
-  alert("Form submitted successfully! Check the console for details.");
-};
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmissionStatus('Submitting...');
+
+    // Validate form fields
+    const errors = {};
+    Object.entries(schema.properties).forEach(([key, fieldSchema]) => {
+      const value = getNestedValue(values, key);
+      const error = validateField(key, value, fieldSchema);
+      if (error) errors[key] = error;
+    });
+    if (!simulationName) errors.simulationName = 'Simulation name is required';
+    if (!baseDirectory) errors.baseDirectory = 'Output directory is required';
+
+    if (Object.keys(errors).length > 0) {
+      setErrorMessages(errors);
+      setSubmissionStatus('Please fix form errors before submitting.');
+      return;
+    }
+
+    try {
+      const response = await axios.post('http://localhost:8000/submit-job', {
+        formData: values,
+        baseDirectory,
+        simulationName,
+      });
+      setSubmissionStatus(`JSON file saved! Path: ${response.data.file_path}`);
+    } catch (error) {
+      setSubmissionStatus(`Error: ${error.response?.data?.detail || error.message}`);
+    }
+  };  
 
   if (!schema || !schema.properties || !schema.properties.numberCells) {
     console.error("PICMIInputForm: Invalid root schema, missing properties or numberCells", schema);
@@ -1061,17 +1080,42 @@ const handleSubmit = (e) => {
   console.log("PICMIInputForm: Root schema validated, numberCells present:", schema.properties.numberCells);
 
   return (
-    <div className="p-4">
-      <h2 className="text-xl font-bold mb-4">PICMIInputForm</h2>
-      <form onSubmit={handleSubmit}>
+    <div className="p-4 max-w-2xl mx-auto">
+      <h2 className="text-xl font-bold mb-4">PIConGPU Simulation Input</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium">Output Directory:</label>
+          <input
+            type="text"
+            value={baseDirectory}
+            onChange={(e) => setBaseDirectory(e.target.value)}
+            placeholder="e.g., src/components/outputs"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            required
+          />
+          {errorMessages.baseDirectory && <span className="text-red-500 text-sm">{errorMessages.baseDirectory}</span>}
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Simulation Name:</label>
+          <input
+            type="text"
+            value={simulationName}
+            onChange={(e) => setSimulationName(e.target.value)}
+            placeholder="e.g., lwfa-rdf"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            required
+          />
+          {errorMessages.simulationName && <span className="text-red-500 text-sm">{errorMessages.simulationName}</span>}
+        </div>
         {renderFields(schema)}
         <button
           type="submit"
           className="mt-4 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
         >
-          Submit Form
+          Submit
         </button>
       </form>
+      {submissionStatus && <p className="mt-4 text-sm">{submissionStatus}</p>}
     </div>
   );
 

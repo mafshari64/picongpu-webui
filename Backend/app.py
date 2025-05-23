@@ -1,35 +1,75 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from ssh_handler import upload_files, submit_job, fetch_results
+import os
+import json
+import time
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = FastAPI()
 
-# Define the data structure for the input form
+# Enable CORS for React frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[os.getenv("REACT_APP_URL", "http://localhost:3000")],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Define the data structure for PICMI input form
 class SimulationInput(BaseModel):
-    parameter_1: str
-    parameter_2: int
-    parameter_3: float  # Add fields matching your React form
+    formData: dict
+    baseDirectory: str
+    simulationName: str
 
 @app.post("/submit-job")
 async def submit_job_endpoint(input_data: SimulationInput):
     try:
-        # Generate input files
-        input_file_path = f"data/input_{input_data.parameter_1}.json"
-        with open(input_file_path, "w") as file:
-            file.write(input_data.json())
+        # Validate formData
+        if not isinstance(input_data.formData, dict):
+            raise ValueError("formData must be a dictionary")
 
-        # Transfer files and submit the job
-        upload_files(input_file_path)
-        job_id = submit_job()
+        # Sanitize baseDirectory and simulationName
+        base_dir = input_data.baseDirectory.strip().replace('..', '').lstrip('/').lstrip('\\')
+        simulation_name = input_data.simulationName.strip().replace(' ', '_').replace('..', '')
+        if not simulation_name:
+            raise ValueError("Simulation name cannot be empty")
 
-        return {"status": "Job submitted", "job_id": job_id}
+        # Read PROJECT_ROOT from .env
+        project_root = os.getenv("PROJECT_ROOT")
+        if not project_root:
+            raise ValueError("PROJECT_ROOT not defined in .env")
+        project_root = os.path.abspath(project_root)
+        if not os.path.exists(project_root):
+            raise Exception(f"Project root not found at {project_root}")
+
+        # Create unique directory with timestamp
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        data_dir = os.path.join(project_root, base_dir, f"{simulation_name}_{timestamp}")
+        os.makedirs(data_dir, exist_ok=True)
+        
+        # Generate and save JSON file
+        input_file_name = os.path.join(data_dir, "pypicongpu.json")
+        try:
+            with open(input_file_name, "w", encoding='utf-8') as file:
+                json.dump(input_data.formData, file, indent=2)
+        except Exception as e:
+            raise Exception(f"Failed to create JSON file: {str(e)}")
+
+        # Verify file was created
+        if not os.path.exists(input_file_name):
+            raise Exception(f"JSON file {input_file_name} was not created")
+
+        # Log file creation
+        print(f"Created JSON file: {input_file_name}")
+
+        return {
+            "status": "JSON file saved",
+            "file_path": input_file_name
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/fetch-results/{job_id}")
-async def fetch_results_endpoint(job_id: str):
-    try:
-        results = fetch_results(job_id)
-        return {"status": "Success", "results": results}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Failed to save JSON file: {str(e)}")
