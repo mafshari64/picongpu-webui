@@ -1,7 +1,8 @@
 PIConGPU React Web Interface
 This project is a web interface for configuring and submitting PIConGPU simulations. It uses a React frontend and FastAPI backend to generate simulation input files locally, with plans for supercomputer integration. Below is an overview of key files and their purpose.
 Project Structure:
-'''
+
+```
 picongpu_react/
 
 ├── FastAPI Backend/
@@ -21,7 +22,7 @@ picongpu_react/
 │   ├── picmi_schema.json
 ├── package.json
 ├── .gitignore
-'''
+```
 
 Key Files and Directories
 
