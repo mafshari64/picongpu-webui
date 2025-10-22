@@ -1,6 +1,35 @@
+# PIConGPU WebUI
+
+**Interactive Web Interface for PIConGPU Simulation Setup and Configuration**
+
 PIConGPU React Web Interface
-This project is a web interface for configuring and submitting PIConGPU simulations. It uses a React frontend and FastAPI backend to generate simulation input files locally, with plans for supercomputer integration. Below is an overview of key files and their purpose.
-Project Structure:
+This project is a web interface for configuring and submitting [PIConGPU](https://github.com/ComputationalRadiationPhysics/picongpu) simulations.  
+PIConGPU WebUI provides an easy-to-use, browser-based interface to define, validate, and generate simulation inputs for PIConGPU.  
+It allows users to dynamically configure simulation parameters (laser, plasma, and diagnostic) using an interactive React frontend and a FastAPI backend.
+
+---
+
+### 🚀 Key Features
+
+- **Dynamic Input Forms** – Automatically generated UI fields based on PICMI schema  
+- **Schema Validation** – Ensures all parameters are physically and syntactically correct  
+- **FastAPI Backend** – Converts user input into valid PICMI python file.  
+- **JSON Export** – Generates input files ready for PIConGPU runs  
+- **Modular Design** – Easily extendable for new physics modules and diagnostics  
+
+---
+
+### 🧩 Architecture Overview
+
+| Component | Description |
+|------------|--------------|
+| **React Frontend** | User interface for parameter input and validation |
+| **FastAPI Backend** | Receives input data, processes with PyPIConGPU, and generates config files |
+| **Nginx** | Serves static React files and proxies API requests to FastAPI |
+| **VM / HPC Backend** | Executes PIConGPU simulations or prepares input JSON files |
+
+---
+ Below is an overview of Project Structure:
 
 ```
 picongpu_react/
