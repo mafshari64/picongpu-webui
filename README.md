@@ -1,34 +1,56 @@
 PIConGPU React Web Interface
 This project is a web interface for configuring and submitting PIConGPU simulations. It uses a React frontend and FastAPI backend to generate simulation input files locally, with plans for supercomputer integration. Below is an overview of key files and their purpose.
-Project Structure
+Project Structure:
+
 picongpu_react/
-├── Backend/
+
+├── FastAPI Backend/
 │   ├── app.py
 │   ├── .env
+│   ├── ssh_handler.py
 ├── src/
 │   ├── components/
 │   │   ├── PICMIInputForm.js
-│   ├── store/
-│   │   ├── index.js
-│   │   ├── slices/
+│   ├── redux/
+│   │   ├── schemaSlice.js
+│   │   ├── store.js
+│   ├── index.js
+│   ├── index.css
+│   ├── App.js
 ├── public/
 │   ├── picmi_schema.json
 ├── package.json
 ├── .gitignore
 
+
 Key Files and Directories
 
-Backend/: Contains FastAPI backend files.
-app.py: FastAPI server that handles form data and saves pypicongpu.json locally.
-.env: Stores config variables like PROJECT_ROOT and REACT_APP_URL.
+FastAPI Backend/: 
+app.py: FastAPI server that handles form data and saves metadata(pypicongpu.json) locally.
+.env: Stores config variables and sensitive info (SUPERCOMPUTER_HOST, USER, KEY_PATH).
+ssh_handler.py handles:
+    -SSH connection to a supercomputer via Paramiko.
+    -Uploading files (upload_files).
+    -Reading SLURM config (slurm_config.txt) to dynamically generate job scripts.
+    -Submitting jobs (submit_job) and fetching results (fetch_results).
+
+FastAPI backend is ready to:
+    -Accept POST requests from React.
+    -Save JSON input files to PROJECT_ROOT.
+    -Validate directories and file creation.
+    -Includes CORS middleware, reading .env variables, and logging.
 
 
 src/: Contains React frontend source code.
-components/PICMIInputForm.js: Renders dynamic input form using picmi_schema.json and sends data to backend.
-store/: Manages Redux state (assumed).
-index.js: Configures Redux store for global state.
-slices/: Defines Redux reducers and actions for form state.
-
+PICMIInputForm.js: Renders dynamic input form using picmi_schema.json and sends data to backend.
+schemaSlice.js: manages the schema data (picmi_schema.json).
+store.js: configures Redux with the slice.
+index.js: Wraps <App /> in Redux <Provider> so the store is accessible globally.
+index.css: handles general styles; .error class for error messages.
+App.js:
+    -Fetches the JSON schema (/picmi_schema.json) from public/ on mount.
+    -Stores schema in local state (useState) for now.
+    -Passes schema as a prop to PICMIInputForm.
 
 
 
