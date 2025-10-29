@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
@@ -11,10 +11,14 @@ load_dotenv()
 
 app = FastAPI()
 
-# Enable CORS for React frontend
+# --- Updated CORS middleware ---
+allowed_origins = os.getenv("REACT_APP_URL", "http://localhost:3000")
+allow_list = [o.strip() for o in allowed_origins.split(",")] if "," in allowed_origins else [allowed_origins]
+
+# For initial testing, allow all origins (safe: limit in production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("REACT_APP_URL", "http://localhost:3000")],
+    allow_origins=allow_list if allow_list and allow_list != ["*"] else ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -27,7 +31,10 @@ class SimulationInput(BaseModel):
     simulationName: str
 
 @app.post("/submit-job")
-async def submit_job_endpoint(input_data: SimulationInput):
+async def submit_job_endpoint(input_data: SimulationInput, request: Request):
+    # --- Log incoming request (helpful for debugging) ---
+    print(f"submit-job called from {request.client.host}; simulationName: {input_data.simulationName}, baseDirectory: {input_data.baseDirectory}")
+    
     try:
         # Validate formData
         if not isinstance(input_data.formData, dict):

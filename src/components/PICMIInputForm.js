@@ -1062,7 +1062,8 @@ const PICMIInputForm = ({ schema }) => {
     }
 
     try {
-      const response = await axios.post('http://localhost:8000/submit-job', {
+      //const response = await axios.post('http://localhost:8000/submit-job', {
+      const response = await axios.post('/api/submit-job', {
         formData: values,
         baseDirectory,
         simulationName,
