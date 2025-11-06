@@ -26,6 +26,7 @@ class SimulationInput(BaseModel):
     baseDirectory: str
     simulationName: str
 
+
 @app.post("/submit-job")
 async def submit_job_endpoint(input_data: SimulationInput):
     try:
@@ -53,7 +54,7 @@ async def submit_job_endpoint(input_data: SimulationInput):
         os.makedirs(data_dir, exist_ok=True)
         
         # Generate and save JSON file
-        input_file_name = os.path.join(data_dir, "pypicongpu.json")
+        input_file_name = os.path.join(data_dir, "picmi.json")
         try:
             with open(input_file_name, "w", encoding='utf-8') as file:
                 json.dump(input_data.formData, file, indent=2)
