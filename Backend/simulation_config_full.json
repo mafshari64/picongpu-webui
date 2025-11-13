@@ -1,0 +1,136 @@
+{
+  "general": {
+    "ENABLE_IONS": true,
+    "ENABLE_IONIZATION": true,
+    "ADD_CUSTOM_INPUT": true,
+    "OUTPUT_DIRECTORY_PATH": "lwfa",
+    "SIMULATION_NAME": "sim"
+  },
+  "grid": {
+    "picongpu_n_gpus": [
+      2,
+      4,
+      1
+    ],
+    "number_of_cells": [
+      192,
+      2048,
+      192
+    ],
+    "lower_bound": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "upper_bound": [
+      3.40224e-05,
+      9.07264e-05,
+      3.40224e-05
+    ],
+    "lower_boundary_conditions": [
+      "open",
+      "open",
+      "open"
+    ],
+    "upper_boundary_conditions": [
+      "open",
+      "open",
+      "open"
+    ]
+  },
+  "solver": {
+    "method": "Yee"
+  },
+  "distribution": {
+    "type": "Gaussian",
+    "density": 1e+25,
+    "center_front": 8e-05,
+    "sigma_front": 8e-05,
+    "center_rear": 0.0001,
+    "sigma_rear": 8e-05,
+    "factor": -1.0,
+    "power": 4.0,
+    "vacuum_front_factor": 50.0
+  },
+  "layout": {
+    "n_macroparticles_per_cell": 2
+  },
+  "species": [
+    {
+      "name": "electron",
+      "particle_type": "electron",
+      "charge_state": null,
+      "initial_distribution": {
+        "type": "Gaussian",
+        "density": 1e+25,
+        "center_front": 8e-05,
+        "sigma_front": 8e-05,
+        "center_rear": 0.0001,
+        "sigma_rear": 8e-05,
+        "factor": -1.0,
+        "power": 4.0,
+        "vacuum_front_factor": 50.0
+      },
+      "layout": {
+        "n_macroparticles_per_cell": 2
+      },
+      "picongpu_fixed_charge": false
+    }
+  ],
+  "ionization_models": [
+    {
+      "model_type": "ADK",
+      "variant": "LinearPolarization",
+      "ion_species": "hydrogen",
+      "electron_species": "electron"
+    }
+  ],
+  "laser": {
+    "wavelength": 8e-07,
+    "waist": 4.246609082647506e-06,
+    "duration": 5e-15,
+    "propagation_direction": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "polarization_direction": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "focal_position": [
+      1.70112e-05,
+      4.62e-05,
+      1.70112e-05
+    ],
+    "centroid_position": [
+      1.70112e-05,
+      -1.1249999999999999e-05,
+      1.70112e-05
+    ],
+    "polarization_type": "LINEAR",
+    "a0": 8.0,
+    "phi0": 0.0,
+    "pulse_init": 15.0
+  },
+  "diagnostics": [
+    {
+      "name": "PhaseSpace",
+      "kind": "PhaseSpace",
+      "species": "electron",
+      "fields": [
+        "px",
+        "py",
+        "pz"
+      ],
+      "interval": 100
+    }
+  ],
+  "custom_input": [
+    {
+      "key": "openPMD_period",
+      "value": "100"
+    }
+  ]
+}

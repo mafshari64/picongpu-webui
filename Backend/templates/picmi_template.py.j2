@@ -1,0 +1,205 @@
+# Backend/templates/picmi_template.py.j2
+"""
+This file is part of PIConGPU.
+Copyright 2024 PIConGPU contributors
+Authors: Masoud Afshari, Brian Edward Marre, Richard Pausch
+License: GPLv3+
+"""
+
+from picongpu import picmi
+from picongpu import pypicongpu
+import numpy as np
+from scipy.constants import c
+import logging
+import datetime
+from picongpu.pypicongpu.output.png import EMFieldScaleEnum, ColorScaleEnum
+
+# Set log level
+logging.basicConfig(level=logging.WARNING)
+
+"""
+@file PICMI user script reproducing the PIConGPU LWFA example
+This Python script is an example PICMI user script reproducing the LaserWakefield example setup, based on 8.cfg.
+"""
+
+# Generation modifiers
+ENABLE_IONS = {{ cfg.ENABLE_IONS }}
+ENABLE_IONIZATION = {{ cfg.ENABLE_IONIZATION }}
+ADD_CUSTOM_INPUT = {{ cfg.ADD_CUSTOM_INPUT }}
+OUTPUT_DIRECTORY_PATH = "{{ cfg.OUTPUT_DIRECTORY_PATH }}"
+
+# Grid
+numberCells = np.array({{ cfg.number_of_cells }})
+cellSize = np.array({{ cfg.cell_size }})
+
+grid = picmi.Cartesian3DGrid(
+    picongpu_n_gpus={{ cfg.picongpu_n_gpus }},
+    number_of_cells={{ cfg.number_of_cells }},
+    lower_bound={{ cfg.lower_bound }},
+    upper_bound={{ cfg.upper_bound }},
+    lower_boundary_conditions={{ cfg.lower_boundary_conditions }},
+    upper_boundary_conditions={{ cfg.upper_boundary_conditions }},
+)
+
+# Gaussian Profile
+gaussianProfile = picmi.distribution.GaussianDistribution(
+    density={{ cfg.density }},
+    center_front={{ cfg.center_front }},
+    sigma_front={{ cfg.sigma_front }},
+    center_rear={{ cfg.center_rear }},
+    sigma_rear={{ cfg.sigma_rear }},
+    factor={{ cfg.factor }},
+    power={{ cfg.power }},
+    vacuum_front={{ cfg.vacuum_cells_front }} * cellSize[1],
+)
+
+# Solver
+solver = picmi.ElectromagneticSolver(
+    grid=grid,
+    method="{{ cfg.solver_method }}"
+)
+
+# Laser
+laser_duration = {{ cfg.duration }}
+pulse_init = {{ cfg.pulse_init }}
+laser = picmi.GaussianLaser(
+    wavelength={{ cfg.wavelength }},
+    waist={{ cfg.waist }},
+    duration=laser_duration,
+    propagation_direction={{ cfg.propagation_direction }},
+    polarization_direction={{ cfg.polarization_direction }},
+    focal_position=[
+        float(numberCells[0] * cellSize[0] / 2.0),
+        {{ cfg.focal_position[1] }},
+        float(numberCells[2] * cellSize[2] / 2.0)
+    ],
+    centroid_position=[
+        float(numberCells[0] * cellSize[0] / 2.0),
+        -0.5 * pulse_init * laser_duration * c,
+        float(numberCells[2] * cellSize[2] / 2.0)
+    ],
+    picongpu_polarization_type=picmi.lasers.PolarizationType.{{ cfg.polarization_type }},
+    a0={{ cfg.a0 }},
+    phi0={{ cfg.phase }},
+)
+
+random_layout = picmi.PseudoRandomLayout(n_macroparticles_per_cell={{ cfg.n_macroparticles_per_cell }})
+
+# Species and Ionization
+species_list = []
+{% if not cfg.ENABLE_IONIZATION %}
+interaction = None
+{% for species in cfg.species %}
+{% if species.particle_type == "electron" %}
+electrons = picmi.Species(
+    particle_type="{{ species.particle_type }}",
+    name="{{ species.name }}",
+    initial_distribution=gaussianProfile
+)
+species_list.append((electrons, random_layout))
+{% endif %}
+{% endfor %}
+{% if cfg.ENABLE_IONS %}
+{% for species in cfg.species if species.particle_type != "electron" %}
+{{ species.name }} = picmi.Species(
+    particle_type="{{ species.particle_type }}",
+    name="{{ species.name }}",
+    picongpu_fixed_charge={{ species.picongpu_fixed_charge }},
+    initial_distribution=gaussianProfile
+)
+species_list.append(({{ species.name }}, random_layout))
+{% endfor %}
+{% endif %}
+{% else %}
+{% if not cfg.ENABLE_IONS %}
+raise ValueError("Ions species required for ionization")
+{% endif %}
+{% for species in cfg.species if species.particle_type != "electron" %}
+{{ species.name }} = picmi.Species(
+    particle_type="{{ species.particle_type }}",
+    name="{{ species.name }}",
+    charge_state={{ species.charge_state }},
+    initial_distribution=gaussianProfile
+)
+species_list.append(({{ species.name }}, random_layout))
+{% endfor %}
+{% for species in cfg.species %}
+{% if species.particle_type == "electron" %}
+electrons = picmi.Species(
+    particle_type="{{ species.particle_type }}",
+    name="{{ species.name }}",
+    initial_distribution=None
+)
+species_list.append((electrons, None))
+{% endif %}
+{% endfor %}
+{% for model in cfg.ionization_models %}
+{% for species in cfg.species if species.name == model.ion_species %}
+adk_ionization_{{ species.name }} = picmi.ADK(
+    ADK_variant=picmi.ADKVariant.{{ model.variant }},
+    ion_species={{ species.name }},
+    ionization_electron_species=electrons,
+    ionization_current=None
+)
+{% if model.bsi_extensions %}
+bsi_ionization_{{ species.name }} = picmi.BSI(
+    BSI_extensions=[{% for ext in model.bsi_extensions %}picmi.BSIExtension.{{ ext }}{% if not loop.last %}, {% endif %}{% endfor %}],
+    ion_species={{ species.name }},
+    ionization_electron_species=electrons,
+    ionization_current=None
+)
+{% endif %}
+{% endfor %}
+{% endfor %}
+interaction = picmi.Interaction(
+    ground_state_ionization_model_list=[
+        {% for model in cfg.ionization_models %}
+        {% for species in cfg.species if species.name == model.ion_species %}
+        adk_ionization_{{ species.name }}{% if model.bsi_extensions %},
+        bsi_ionization_{{ species.name }}{% endif %}{% if not loop.parent.last %},{% endif %}
+        {% endfor %}
+        {% endfor %}
+    ]
+)
+{% endif %}
+
+# Simulation
+sim = picmi.Simulation(
+    solver=solver,
+    max_steps={{ cfg.max_steps }},
+    time_step_size={{ cfg.time_step_size }},
+    picongpu_moving_window_move_point={{ cfg.moving_window_move_point }},
+    picongpu_walltime=datetime.timedelta(hours={{ cfg.walltime_hours }}),
+    picongpu_interaction=interaction
+)
+
+for species, layout in species_list:
+    sim.add_species(species, layout=layout)
+
+# Diagnostics
+sim.diagnostics = [
+    {% for diag in cfg.diagnostics %}
+    {% if diag.type == "PhaseSpace" %}
+    picmi.diagnostics.PhaseSpace(
+        species=electrons,
+        period=picmi.diagnostics.TimeStepSpec{{ diag.period }},
+        spatial_coordinate="{{ diag.spatial_coordinate }}",
+        momentum_coordinate="{{ diag.momentum_coordinate }}",
+        min_momentum={{ diag.min_momentum }},
+        max_momentum={{ diag.max_momentum }}
+    ){% if not loop.last %},{% endif %}
+    {% endif %}
+    {% endfor %}
+]
+
+sim.add_laser(laser, None)
+
+# Custom User Input
+{% if cfg.ADD_CUSTOM_INPUT %}
+min_weight_input = pypicongpu.customuserinput.CustomUserInput()
+min_weight_input.addToCustomInput({"minimum_weight": {{ cfg.custom_user_input.minimum_weight }}}, "minimum_weight")
+sim.picongpu_add_custom_user_input(min_weight_input)
+{% endif %}
+
+if __name__ == "__main__":
+    sim.write_input_file(OUTPUT_DIRECTORY_PATH)

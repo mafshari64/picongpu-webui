@@ -38,6 +38,10 @@ picongpu_react/
 │   ├── app.py
 │   ├── .env
 │   ├── ssh_handler.py
+│   ├── frontend_schema_gen.py           
+│   ├── api.py            
+│   └── templates/
+│       └── picmi_template.py.j2   
 ├── src/
 │   ├── components/
 │   │   ├── PICMIInputForm.js
@@ -56,13 +60,19 @@ picongpu_react/
 Key Files and Directories
 
 FastAPI Backend/: 
-app.py: FastAPI server that handles form data and saves metadata(pypicongpu.json) locally.
+app.py: FastAPI server that handles form data to generate PICMI python file and check the type safety OF frontend_generated schema  
+
 .env: Stores config variables and sensitive info (SUPERCOMPUTER_HOST, USER, KEY_PATH).
 ssh_handler.py handles:
     -SSH connection to a supercomputer via Paramiko.
     -Uploading files (upload_files).
     -Reading SLURM config (slurm_config.txt) to dynamically generate job scripts.
     -Submitting jobs (submit_job) and fetching results (fetch_results).
+
+frontend_schema_gen.py: Pydantic models and schema generation
+
+templates/
+      └── picmi_template.py.j2  # Jinja2 template for PICMI python file
 
 FastAPI backend is ready to:
     -Accept POST requests from React.

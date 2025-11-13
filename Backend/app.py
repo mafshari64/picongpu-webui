@@ -1,6 +1,9 @@
+# Backend/app.py - CLEAN VERSION (replace your entire app.py)
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+from jinja2 import Template
+from frontend_schema_gen import SimulationConfig  # FIXED: was 'models'
 import os
 import json
 import time
@@ -20,13 +23,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Define the data structure for PICMI input form
+# Define the data structure for the existing /submit-job endpoint
 class SimulationInput(BaseModel):
     formData: dict
     baseDirectory: str
     simulationName: str
 
+# Function to generate PICMI script using Jinja2
+def generate_picmi_script(config: SimulationConfig) -> str:
+    template_path = os.path.join(os.path.dirname(__file__), "templates/picmi_template.py.j2")
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(f"Template not found: {template_path}")
+    with open(template_path, "r") as f:
+        template = Template(f.read())
+    return template.render(cfg=config)
 
+# Existing /submit-job endpoint (KEEP AS IS)
 @app.post("/submit-job")
 async def submit_job_endpoint(input_data: SimulationInput):
     try:
@@ -74,3 +86,25 @@ async def submit_job_endpoint(input_data: SimulationInput):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save JSON file: {str(e)}")
+
+# SINGLE /generate-picmi endpoint (REMOVED DUPLICATE)
+@app.post("/generate-picmi")
+async def generate_picmi(config: SimulationConfig):
+    try:
+        print(f"✅ Generating PICMI script for: {config.OUTPUT_DIRECTORY_PATH}")  # Debug log
+        script_content = generate_picmi_script(config)
+        output_path = f"{config.OUTPUT_DIRECTORY_PATH}/picmi_script.py"
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(script_content)
+        print(f"✅ PICMI script saved to: {output_path}")  # Success log
+        return {"status": "Success", "file_path": output_path}
+    except ValidationError as e:
+        print(f"❌ Validation error: {e}")
+        raise HTTPException(status_code=422, detail=e.errors())
+    except FileNotFoundError as e:
+        print(f"❌ Template error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        print(f"❌ Error generating script: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
